@@ -22,7 +22,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import cv2  # type: ignore
-import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets  # type: ignore
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas  # type: ignore
 from matplotlib.figure import Figure
@@ -139,8 +138,9 @@ class RPPGApp(QtWidgets.QMainWindow):
             if roi_box:
                 rx, ry, rw, rh = roi_box
                 cv2.rectangle(frame, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), 2)
-        # Update method with ROI
-        self.current_method.instance.update(roi if roi is not None else np.zeros((1, 1, 3), dtype=np.uint8))
+        # Update method only when a valid ROI is available.
+        if roi is not None and roi.size > 0:
+            self.current_method.instance.update(roi)
         hr = self.current_method.instance.get_hr()
         if hr is not None:
             self.hr_label.setText(f"Heart Rate: {hr:.1f} BPM")

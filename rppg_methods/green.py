@@ -1,17 +1,13 @@
 """Implementation of the basic green channel rPPG method.
 
-This method tracks the average intensity of the green channel
-within the forehead region across successive frames. Because
-hemoglobin absorbs more green light than red or blue, the green
-channel tends to exhibit the strongest pulsatile component
-correlated with the cardiac cycle. A band‑pass filter and FFT
-analysis are applied in the base class to derive the heart rate.
+Signal extraction equation:
+    s_t = mean(G_t)
+where G_t is the green channel in the forehead ROI at frame t.
 
-References
-----------
-Verkruysse, W., Svaasand, L. O., & Nelson, J. S. (2008). Remote
-plethysmographic imaging using ambient light. Optics Express, 16(26),
-21434–21445.
+Reference:
+    Verkruysse, W., Svaasand, L. O., & Nelson, J. S. (2008).
+    Remote plethysmographic imaging using ambient light.
+    Optics Express, 16(26), 21434-21445.
 """
 
 from __future__ import annotations
@@ -28,14 +24,13 @@ class GreenMethod(RPPGMethod):
         super().__init__(fs=fs, buffer_size=buffer_size)
 
     def update(self, roi_frame: np.ndarray) -> None:
-        """Extract mean green intensity from the ROI and update buffer."""
+        """Run method stages:
+        1) signal_extraction: mean green value
+        2) normalization/filtering/hr_estimation: shared base pipeline
+        """
         if roi_frame is None or roi_frame.size == 0:
             return
         # OpenCV loads images in BGR order; index 1 is green
         green_values = roi_frame[:, :, 1].astype(np.float64)
         mean_green = float(np.mean(green_values))
-        self._append_value(mean_green)
-        # Update heart rate estimation periodically
-        hr = self._compute_hr_from_buffer()
-        if hr is not None:
-            self.last_hr = hr
+        self.update_from_value(mean_green)

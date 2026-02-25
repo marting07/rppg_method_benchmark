@@ -1,10 +1,12 @@
 """Implementation of the chrominance-based rPPG method (CHROM).
 
-This algorithm leverages a linear combination of the color channels
-to amplify the photoplethysmographic signal while suppressing
-motion artifacts. Specifically it computes two orthogonal
-chrominance signals and combines them such that variations due to
-illumination changes are minimized.
+Signal extraction equations:
+    x_t = 3R_t - 2G_t
+    y_t = 1.5R_t + G_t - 1.5B_t
+    alpha = std(x) / std(y)
+    s_t = x_t - alpha * y_t
+
+where R_t, G_t, B_t are mean ROI channels at frame t.
 
 References
 ----------
@@ -35,7 +37,7 @@ class ChromMethod(RPPGMethod):
         self.y_buffer.clear()
 
     def update(self, roi_frame: np.ndarray) -> None:
-        """Compute the CHROM signal from the ROI and update buffers."""
+        """Run method stages with CHROM signal extraction and base pipeline."""
         if roi_frame is None or roi_frame.size == 0:
             return
         # Extract mean color channels; OpenCV uses BGR ordering
@@ -64,7 +66,4 @@ class ChromMethod(RPPGMethod):
         else:
             alpha = std_x / std_y
         s = x - alpha * y
-        self._append_value(s)
-        hr = self._compute_hr_from_buffer()
-        if hr is not None:
-            self.last_hr = hr
+        self.update_from_value(s)

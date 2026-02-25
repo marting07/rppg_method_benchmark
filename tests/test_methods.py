@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+import unittest
+
+import numpy as np
+
+from rppg_methods import ChromMethod, GreenMethod, JBSSMethod
+
+
+def roi_from_bgr(b: float, g: float, r: float, size: int = 12) -> np.ndarray:
+    roi = np.zeros((size, size, 3), dtype=np.uint8)
+    roi[:, :, 0] = np.clip(round(b), 0, 255)
+    roi[:, :, 1] = np.clip(round(g), 0, 255)
+    roi[:, :, 2] = np.clip(round(r), 0, 255)
+    return roi
+
+
+class MethodBehaviorTests(unittest.TestCase):
+    def test_empty_roi_is_ignored(self) -> None:
+        methods = [GreenMethod(), ChromMethod(), JBSSMethod()]
+        empty = np.zeros((0, 0, 3), dtype=np.uint8)
+        for method in methods:
+            method.update(empty)
+            self.assertEqual(len(method.signal_buffer), 0)
+
+    def test_green_recovers_known_hr_from_synthetic_signal(self) -> None:
+        fs = 30.0
+        bpm_target = 72.0
+        freq = bpm_target / 60.0
+        method = GreenMethod(fs=fs, buffer_size=600)
+        duration_s = 12.0
+        n = int(duration_s * fs)
+        for idx in range(n):
+            t = idx / fs
+            g = 128.0 + 20.0 * np.sin(2.0 * np.pi * freq * t)
+            method.update(roi_from_bgr(b=90.0, g=g, r=100.0))
+        hr = method.get_hr()
+        self.assertIsNotNone(hr)
+        assert hr is not None
+        self.assertLess(abs(hr - bpm_target), 5.0)
+
+    def test_chrom_recovers_known_hr_from_synthetic_signal(self) -> None:
+        fs = 30.0
+        bpm_target = 72.0
+        freq = bpm_target / 60.0
+        method = ChromMethod(fs=fs, buffer_size=600)
+        duration_s = 12.0
+        n = int(duration_s * fs)
+        for idx in range(n):
+            t = idx / fs
+            pulse = np.sin(2.0 * np.pi * freq * t)
+            r = 130.0 + 14.0 * pulse
+            g = 110.0 + 8.0 * pulse
+            b = 95.0 + 4.0 * pulse
+            method.update(roi_from_bgr(b=b, g=g, r=r))
+        hr = method.get_hr()
+        self.assertIsNotNone(hr)
+        assert hr is not None
+        self.assertLess(abs(hr - bpm_target), 7.0)
+
+    def test_jbss_is_deterministic_for_same_input(self) -> None:
+        fs = 30.0
+        bpm_target = 75.0
+        freq = bpm_target / 60.0
+        method_a = JBSSMethod(fs=fs, buffer_size=600)
+        method_b = JBSSMethod(fs=fs, buffer_size=600)
+        duration_s = 12.0
+        n = int(duration_s * fs)
+        rois: list[np.ndarray] = []
+        for idx in range(n):
+            t = idx / fs
+            pulse = np.sin(2.0 * np.pi * freq * t)
+            motion = 0.6 * np.sin(2.0 * np.pi * 0.25 * t)
+            r = 120.0 + 10.0 * pulse + 6.0 * motion
+            g = 110.0 + 7.0 * pulse - 4.0 * motion
+            b = 95.0 + 5.0 * pulse + 3.0 * motion
+            rois.append(roi_from_bgr(b=b, g=g, r=r))
+        for roi in rois:
+            method_a.update(roi)
+            method_b.update(roi)
+        hr_a = method_a.get_hr()
+        hr_b = method_b.get_hr()
+        self.assertIsNotNone(hr_a)
+        self.assertIsNotNone(hr_b)
+        assert hr_a is not None and hr_b is not None
+        self.assertAlmostEqual(hr_a, hr_b, places=6)
+
+    def test_get_ppg_signal_handles_short_buffers(self) -> None:
+        method = GreenMethod(fs=30.0, buffer_size=300)
+        for _ in range(5):
+            method.update(roi_from_bgr(90.0, 120.0, 100.0))
+        signal = method.get_ppg_signal()
+        self.assertEqual(signal.size, 5)
+
+
+if __name__ == "__main__":
+    unittest.main()

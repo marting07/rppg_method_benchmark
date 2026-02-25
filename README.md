@@ -45,6 +45,9 @@ make run
 - `make venv`: create `.venv` using Python venv
 - `make install`: install dependencies from `requirements.txt`
 - `make run`: start the app
+- `make test`: run unit tests
+- `make evaluate VIDEO=/abs/path/video.mp4 SCENARIO=still METHODS=all [GT=/abs/path/gt.csv] [RUN_ID=my_run]`: run offline evaluation
+- `make plots RUN_DIR=outputs/data/<run_id>`: generate paper figures from one evaluation run
 - `make freeze`: regenerate `requirements.txt` from current `.venv`
 - `make clean-venv`: remove `.venv`
 
@@ -54,10 +57,34 @@ make run
 main.py
 rppg_methods/
 utils/
+configs/
+docs/
+scripts/
+tests/
 ```
 
-## Next Research Steps
+## Reproducible Paper Workflow
 
-- Add offline evaluation pipeline on recorded videos with known pulse reference.
-- Save intermediate signals (raw, filtered, PSD) for each method.
-- Generate consistent comparison plots and summary metrics for the paper.
+1. Record videos for protocol scenarios defined in `configs/experiment_protocol.json`.
+2. Optional: collect ground-truth BPM in CSV format with columns `time_s,bpm`.
+3. Run evaluator:
+
+```bash
+make evaluate VIDEO=/absolute/path/scenario_still.mp4 SCENARIO=still METHODS=all GT=/absolute/path/still_gt.csv RUN_ID=still_run_01
+```
+
+4. Generate figures:
+
+```bash
+make plots RUN_DIR=outputs/data/still_run_01
+```
+
+5. Use generated artifacts in:
+- `outputs/data/<run_id>/summary.csv`
+- `outputs/plots/<run_id>/`
+
+## Documentation Index
+
+- Methods and equations: `docs/methods.md`
+- Experimental protocol: `docs/experimental_protocol.md`
+- Ongoing implementation tracker: `docs/improvement_tracker.md`

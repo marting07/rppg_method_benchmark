@@ -5,14 +5,15 @@ canonical correlation analysis (CCA) to separate the true pulse
 signal from noise and motion artifacts. Here we implement a simplified
 version using a single‑component FastICA on the RGB signals.
 
-Note
-----
-This implementation is illustrative and does not faithfully reproduce
-all details of the JBSS algorithm described in the literature. In
-practice JBSS would operate on overlapping temporal windows and apply
-CCA across multiple color channels to select the most periodic
-component. Nonetheless, the method here demonstrates how ICA can
-extract a periodic source from the color traces.
+Simplified extraction equations used here:
+    X_t = [R_t, G_t, B_t]
+    Xw = whiten(X)
+    w <- FastICA(Xw)
+    s_t = (Xw @ w)[-1]
+
+Important:
+    This is an educational ICA-only approximation, not a full JBSS
+    implementation with CCA selection as described in the literature.
 """
 
 from __future__ import annotations
@@ -30,15 +31,17 @@ class JBSSMethod(RPPGMethod):
         self.r_buffer: list[float] = []
         self.g_buffer: list[float] = []
         self.b_buffer: list[float] = []
+        self._last_w: np.ndarray | None = None
 
     def reset(self) -> None:
         super().reset()
         self.r_buffer.clear()
         self.g_buffer.clear()
         self.b_buffer.clear()
+        self._last_w = None
 
     def update(self, roi_frame: np.ndarray) -> None:
-        """Collect RGB means and compute ICA periodically."""
+        """Run method stages with simplified ICA-based signal extraction."""
         if roi_frame is None or roi_frame.size == 0:
             return
         b = float(np.mean(roi_frame[:, :, 0].astype(np.float64)))
@@ -70,11 +73,14 @@ class JBSSMethod(RPPGMethod):
         D_inv = np.diag(1.0 / np.sqrt(d + 1e-10))
         whitening = E @ D_inv @ E.T
         X_white = X_centered @ whitening
-        # FastICA: single component extraction using fixed‑point iteration
-        n_components = 1
         n_features = X_white.shape[1]
-        # Initialize random weight vector
-        w = np.random.rand(n_features)
+        # Deterministic initialization reduces run-to-run variability.
+        if self._last_w is None:
+            w = np.array([1.0, 0.0, 0.0], dtype=np.float64)
+        else:
+            w = self._last_w.copy()
+        if np.linalg.norm(w) == 0:
+            w = np.ones(n_features, dtype=np.float64)
         w /= np.linalg.norm(w)
         for _ in range(100):
             # g(u) = tanh(u) nonlinearity
@@ -88,10 +94,7 @@ class JBSSMethod(RPPGMethod):
             if np.abs(np.abs(np.dot(w_new, w)) - 1.0) < 1e-6:
                 break
             w = w_new
+        self._last_w = w.copy()
         # Extract component
         s = X_white @ w
-        # Append latest sample value
-        self._append_value(float(s[-1]))
-        hr = self._compute_hr_from_buffer()
-        if hr is not None:
-            self.last_hr = hr
+        self.update_from_value(float(s[-1]))

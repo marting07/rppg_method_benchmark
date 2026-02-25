@@ -1,0 +1,40 @@
+{
+  "study_name": "Manual rPPG Method Comparison",
+  "version": "1.0",
+  "common_parameters": {
+    "fs_fallback_hz": 30.0,
+    "buffer_seconds": 10,
+    "min_signal_seconds_for_hr": 4,
+    "hr_band_hz": [0.75, 4.0],
+    "bpm_band": [45, 240]
+  },
+  "scenarios": [
+    {
+      "id": "still",
+      "name": "Still Subject",
+      "description": "Subject remains as still as possible under stable lighting."
+    },
+    {
+      "id": "motion",
+      "name": "Head Motion",
+      "description": "Subject performs left-right and up-down head movements."
+    },
+    {
+      "id": "lighting",
+      "name": "Lighting Variation",
+      "description": "Ambient light intensity changes while subject stays in frame."
+    },
+    {
+      "id": "distance",
+      "name": "Distance Variation",
+      "description": "Subject changes distance from camera while keeping face visible."
+    }
+  ],
+  "metrics": ["mae", "rmse", "pearson_correlation"],
+  "methods": [
+    "green",
+    "chrom",
+    "jbss"
+  ],
+  "notes": "JBSS in this repository is intentionally a simplified ICA-only educational approximation."
+}

@@ -60,6 +60,10 @@ def bandpass_filter(
     low_norm = max(low_norm, 1e-5)
     high_norm = min(high_norm, 0.999)
     b, a = butter(order, [low_norm, high_norm], btype="bandpass")
+    min_len = 3 * max(len(a), len(b))
+    if signal.size <= min_len:
+        # Avoid filtfilt pad-length errors on short startup buffers.
+        return signal.copy()
     # Use filtfilt to achieve zero‑phase filtering (no group delay)
     filtered = filtfilt(b, a, signal)
     return filtered
