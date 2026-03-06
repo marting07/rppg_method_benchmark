@@ -74,6 +74,13 @@ def parse_args() -> argparse.Namespace:
         default=1.0,
         help="Exponent applied to confidence weights in multi_snr mode.",
     )
+    parser.add_argument("--quality-min-skin-ratio", type=float, default=0.30)
+    parser.add_argument("--quality-max-saturation-ratio", type=float, default=0.10)
+    parser.add_argument("--quality-max-motion-score", type=float, default=0.08)
+    parser.add_argument("--quality-min-roi-pixels", type=int, default=260)
+    parser.add_argument("--hold-max-seconds", type=float, default=1.0)
+    parser.add_argument("--hold-decay-per-second", type=float, default=1.0)
+    parser.add_argument("--disable-quality-hold", action="store_true")
     return parser.parse_args()
 
 
@@ -308,13 +315,17 @@ def apply_lag_alignment(rows: list[dict[str, str]], fs: float, max_lag_seconds: 
 def compute_roi_quality(
     roi: np.ndarray,
     prev_gray_small: np.ndarray | None,
+    min_skin_ratio: float,
+    max_saturation_ratio: float,
+    max_motion_score: float,
+    min_roi_pixels: int,
 ) -> tuple[bool, float, float, float, np.ndarray]:
     if roi.size == 0:
         return False, 0.0, 1.0, 1.0, np.zeros((24, 24), dtype=np.uint8)
 
     roi_u8 = roi.astype(np.uint8)
     total_px = roi_u8.shape[0] * roi_u8.shape[1]
-    if total_px < 200:
+    if total_px < int(max(1, min_roi_pixels)):
         gray_small = cv2.resize(cv2.cvtColor(roi_u8, cv2.COLOR_BGR2GRAY), (24, 24), interpolation=cv2.INTER_AREA)
         return False, 0.0, 1.0, 1.0, gray_small
 
@@ -333,7 +344,11 @@ def compute_roi_quality(
     else:
         motion_score = float(np.mean(np.abs(gray_small.astype(np.float64) - prev_gray_small.astype(np.float64))) / 255.0)
 
-    is_good = (skin_ratio >= 0.25) and (saturation_ratio <= 0.12) and (motion_score <= 0.10)
+    is_good = (
+        (skin_ratio >= float(min_skin_ratio))
+        and (saturation_ratio <= float(max_saturation_ratio))
+        and (motion_score <= float(max_motion_score))
+    )
     return is_good, skin_ratio, saturation_ratio, motion_score, gray_small
 
 
@@ -374,6 +389,21 @@ def main() -> int:
                 method.hr_smoothing_alpha = float(np.clip(args.hr_smoothing_alpha, 0.0, 1.0))  # type: ignore[attr-defined]
             if args.max_hr_jump_bpm_per_s is not None and hasattr(method, "max_hr_jump_bpm_per_s"):
                 method.max_hr_jump_bpm_per_s = float(args.max_hr_jump_bpm_per_s)  # type: ignore[attr-defined]
+    hold_state: dict[str, dict[str, dict[str, float | None]]] = {
+        method_name: {
+            roi_name: {
+                "est_bpm": None,
+                "confidence": None,
+                "raw_value": None,
+                "filtered_value": None,
+                "age_frames": float("inf"),
+            }
+            for roi_name in roi_names
+        }
+        for method_name in requested_methods
+    }
+    hold_max_frames = int(round(max(0.0, float(args.hold_max_seconds)) * fs))
+    hold_enabled = not bool(args.disable_quality_hold)
     face_detector = FaceDetector()
     gt_loaded = load_ground_truth(args.ground_truth, fs=fs)
     gt = select_ground_truth_mode(gt_loaded, mode=args.ground_truth_mode)
@@ -404,7 +434,14 @@ def main() -> int:
                 roi, _ = named_rois.get(roi_name, (None, None))  # type: ignore[assignment]
                 if roi is None or roi.size == 0:
                     continue
-                roi_good, skin_ratio, saturation_ratio, motion_score, gray_small = compute_roi_quality(roi, prev_gray_small[roi_name])
+                roi_good, skin_ratio, saturation_ratio, motion_score, gray_small = compute_roi_quality(
+                    roi,
+                    prev_gray_small[roi_name],
+                    min_skin_ratio=float(args.quality_min_skin_ratio),
+                    max_saturation_ratio=float(args.quality_max_saturation_ratio),
+                    max_motion_score=float(args.quality_max_motion_score),
+                    min_roi_pixels=int(args.quality_min_roi_pixels),
+                )
                 prev_gray_small[roi_name] = gray_small
                 frame_skin_ratios.append(float(skin_ratio))
                 frame_saturation_ratios.append(float(saturation_ratio))
@@ -424,20 +461,48 @@ def main() -> int:
             latency_ref: RPPGMethod | None = None
             for roi_name in roi_names:
                 method = method_rois[roi_name]
+                state = hold_state[method_name][roi_name]
                 if latency_ref is None:
                     latency_ref = method
                 previous_len = len(method.signal_buffer)
                 roi = valid_rois.get(roi_name)
+                updated_this_frame = False
                 if roi is not None and roi.size > 0:
                     method.update(roi)
+                    updated_this_frame = True
                 est_bpm = method.get_hr()
                 confidence = method.get_confidence() if hasattr(method, "get_confidence") else None
                 raw_value = method.signal_buffer[-1] if len(method.signal_buffer) > previous_len else None
                 filtered_signal = method.get_ppg_signal()
                 filtered_value = float(filtered_signal[-1]) if filtered_signal.size else None
-                if est_bpm is not None:
+                if updated_this_frame and est_bpm is not None:
                     conf = float(confidence) if confidence is not None and np.isfinite(confidence) else 1.0
                     region_candidates.append((roi_name, float(est_bpm), conf, raw_value, filtered_value, confidence))
+                    state["est_bpm"] = float(est_bpm)
+                    state["confidence"] = float(conf)
+                    state["raw_value"] = None if raw_value is None else float(raw_value)
+                    state["filtered_value"] = None if filtered_value is None else float(filtered_value)
+                    state["age_frames"] = 0.0
+                else:
+                    age = float(state["age_frames"])
+                    if np.isfinite(age):
+                        state["age_frames"] = age + 1.0
+                    if hold_enabled and hold_max_frames > 0 and state["est_bpm"] is not None:
+                        age2 = float(state["age_frames"])
+                        if age2 <= float(hold_max_frames):
+                            base_conf = float(state["confidence"]) if state["confidence"] is not None else 1.0
+                            decay = float(np.exp(-float(args.hold_decay_per_second) * (age2 / max(fs, 1e-6))))
+                            hold_conf = max(1e-6, base_conf * decay)
+                            region_candidates.append(
+                                (
+                                    roi_name,
+                                    float(state["est_bpm"]),
+                                    hold_conf,
+                                    None if state["raw_value"] is None else float(state["raw_value"]),
+                                    None if state["filtered_value"] is None else float(state["filtered_value"]),
+                                    hold_conf,
+                                )
+                            )
 
             best_raw: float | None = None
             best_filtered: float | None = None
@@ -574,6 +639,13 @@ def main() -> int:
         "roi_fusion_mode": args.roi_fusion_mode,
         "roi_snr_exponent": args.roi_snr_exponent,
         "roi_names": roi_names,
+        "quality_min_skin_ratio": args.quality_min_skin_ratio,
+        "quality_max_saturation_ratio": args.quality_max_saturation_ratio,
+        "quality_max_motion_score": args.quality_max_motion_score,
+        "quality_min_roi_pixels": args.quality_min_roi_pixels,
+        "hold_max_seconds": args.hold_max_seconds,
+        "hold_decay_per_second": args.hold_decay_per_second,
+        "quality_hold_enabled": hold_enabled,
     }
     metadata_path = run_dir / "metadata.json"
     metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")

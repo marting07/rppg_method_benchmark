@@ -9,6 +9,12 @@ GT_MODE ?= bpm_row
 MAX_LAG_SECONDS ?= 2.0
 ROI_FUSION_MODE ?= multi_snr
 ROI_SNR_EXPONENT ?= 1.0
+QUALITY_MIN_SKIN_RATIO ?= 0.30
+QUALITY_MAX_SATURATION_RATIO ?= 0.10
+QUALITY_MAX_MOTION_SCORE ?= 0.08
+QUALITY_MIN_ROI_PIXELS ?= 260
+HOLD_MAX_SECONDS ?= 1.0
+HOLD_DECAY_PER_SECOND ?= 1.0
 
 .PHONY: venv install run freeze clean-venv test evaluate plots diagnostics sweep corpus-manifest corpus-batch corpus-download corpus-latex corpus-render paper-figures
 
@@ -26,7 +32,7 @@ test:
 	$(VENV_PY) -m unittest discover -s tests -p "test_*.py"
 
 evaluate:
-	$(VENV_PY) scripts/offline_evaluate.py --video "$(VIDEO)" --scenario "$(SCENARIO)" --methods "$(METHODS)" --ground-truth-mode "$(GT_MODE)" --max-lag-seconds "$(MAX_LAG_SECONDS)" --roi-fusion-mode "$(ROI_FUSION_MODE)" --roi-snr-exponent "$(ROI_SNR_EXPONENT)" $(if $(GT),--ground-truth "$(GT)",) $(if $(RUN_ID),--run-id "$(RUN_ID)",)
+	$(VENV_PY) scripts/offline_evaluate.py --video "$(VIDEO)" --scenario "$(SCENARIO)" --methods "$(METHODS)" --ground-truth-mode "$(GT_MODE)" --max-lag-seconds "$(MAX_LAG_SECONDS)" --roi-fusion-mode "$(ROI_FUSION_MODE)" --roi-snr-exponent "$(ROI_SNR_EXPONENT)" --quality-min-skin-ratio "$(QUALITY_MIN_SKIN_RATIO)" --quality-max-saturation-ratio "$(QUALITY_MAX_SATURATION_RATIO)" --quality-max-motion-score "$(QUALITY_MAX_MOTION_SCORE)" --quality-min-roi-pixels "$(QUALITY_MIN_ROI_PIXELS)" --hold-max-seconds "$(HOLD_MAX_SECONDS)" --hold-decay-per-second "$(HOLD_DECAY_PER_SECOND)" $(if $(DISABLE_QUALITY_HOLD),--disable-quality-hold,) $(if $(GT),--ground-truth "$(GT)",) $(if $(RUN_ID),--run-id "$(RUN_ID)",)
 
 plots:
 	$(VENV_PY) scripts/generate_figures.py --run-dir "$(RUN_DIR)"
@@ -41,7 +47,7 @@ corpus-manifest:
 	$(VENV_PY) scripts/build_corpus_manifest.py --corpus "$(CORPUS)" --root "$(CORPUS_ROOT)" $(if $(MANIFEST_OUT),--output "$(MANIFEST_OUT)",)
 
 corpus-batch:
-	$(VENV_PY) scripts/run_manifest_batch.py --manifest "$(MANIFEST)" --protocol "configs/experiment_protocol.json" --methods "$(METHODS)" --scenario "$(SCENARIO)" --ground-truth-mode "$(GT_MODE)" --max-lag-seconds "$(MAX_LAG_SECONDS)" --roi-fusion-mode "$(ROI_FUSION_MODE)" --roi-snr-exponent "$(ROI_SNR_EXPONENT)" $(if $(AGG_OUT),--aggregate-out "$(AGG_OUT)",)
+	$(VENV_PY) scripts/run_manifest_batch.py --manifest "$(MANIFEST)" --protocol "configs/experiment_protocol.json" --methods "$(METHODS)" --scenario "$(SCENARIO)" --ground-truth-mode "$(GT_MODE)" --max-lag-seconds "$(MAX_LAG_SECONDS)" --roi-fusion-mode "$(ROI_FUSION_MODE)" --roi-snr-exponent "$(ROI_SNR_EXPONENT)" --quality-min-skin-ratio "$(QUALITY_MIN_SKIN_RATIO)" --quality-max-saturation-ratio "$(QUALITY_MAX_SATURATION_RATIO)" --quality-max-motion-score "$(QUALITY_MAX_MOTION_SCORE)" --quality-min-roi-pixels "$(QUALITY_MIN_ROI_PIXELS)" --hold-max-seconds "$(HOLD_MAX_SECONDS)" --hold-decay-per-second "$(HOLD_DECAY_PER_SECOND)" $(if $(DISABLE_QUALITY_HOLD),--disable-quality-hold,) $(if $(AGG_OUT),--aggregate-out "$(AGG_OUT)",)
 
 corpus-download:
 	$(VENV_PY) scripts/download_public_corpora.py $(if $(URLS_JSON),--urls-json "$(URLS_JSON)",) $(if $(UBFC_URL),--ubfc-url "$(UBFC_URL)",) $(if $(FORCE),--force,)

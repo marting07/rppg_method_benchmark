@@ -32,6 +32,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-lag-seconds", type=float, default=2.0)
     parser.add_argument("--roi-fusion-mode", choices=["single", "multi_snr"], default="multi_snr")
     parser.add_argument("--roi-snr-exponent", type=float, default=1.0)
+    parser.add_argument("--quality-min-skin-ratio", type=float, default=0.30)
+    parser.add_argument("--quality-max-saturation-ratio", type=float, default=0.10)
+    parser.add_argument("--quality-max-motion-score", type=float, default=0.08)
+    parser.add_argument("--quality-min-roi-pixels", type=int, default=260)
+    parser.add_argument("--hold-max-seconds", type=float, default=1.0)
+    parser.add_argument("--hold-decay-per-second", type=float, default=1.0)
+    parser.add_argument("--disable-quality-hold", action="store_true")
     return parser.parse_args()
 
 
@@ -90,6 +97,14 @@ def run_one(
     cmd.extend(["--max-lag-seconds", str(args.max_lag_seconds)])
     cmd.extend(["--roi-fusion-mode", str(args.roi_fusion_mode)])
     cmd.extend(["--roi-snr-exponent", str(args.roi_snr_exponent)])
+    cmd.extend(["--quality-min-skin-ratio", str(args.quality_min_skin_ratio)])
+    cmd.extend(["--quality-max-saturation-ratio", str(args.quality_max_saturation_ratio)])
+    cmd.extend(["--quality-max-motion-score", str(args.quality_max_motion_score)])
+    cmd.extend(["--quality-min-roi-pixels", str(args.quality_min_roi_pixels)])
+    cmd.extend(["--hold-max-seconds", str(args.hold_max_seconds)])
+    cmd.extend(["--hold-decay-per-second", str(args.hold_decay_per_second)])
+    if args.disable_quality_hold:
+        cmd.append("--disable-quality-hold")
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:

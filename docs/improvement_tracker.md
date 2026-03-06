@@ -75,12 +75,12 @@ Status: `[x]`
 - [x] `outputs/data/aggregate/ubfc_full_active_method_means.pdf`
 - [x] `outputs/data/aggregate/ubfc_full_active_method_means.png`
 
-Current 42-subject UBFC means (active methods, BPM-row GT + multi-ROI SNR fusion):
+Current 42-subject UBFC means (active methods, BPM-row GT + multi-ROI SNR fusion + stricter quality gating/hold + redesigned SSR):
 
-- [x] `chrom`: MAE `5.973`, RMSE `7.690`, corr `0.395`, failure `0.183`
-- [x] `green`: MAE `13.450`, RMSE `14.864`, corr `0.398`, failure `0.437`
-- [x] `pos`: MAE `6.965`, RMSE `8.979`, corr `0.341`, failure `0.227`
-- [x] `ssr`: MAE `21.327`, RMSE `23.007`, corr `0.113`, failure `0.748`
+- [x] `chrom`: MAE `5.940`, RMSE `7.637`, corr `0.404`, failure `0.183`
+- [x] `green`: MAE `13.242`, RMSE `14.635`, corr `0.426`, failure `0.437`
+- [x] `pos`: MAE `6.890`, RMSE `8.927`, corr `0.336`, failure `0.223`
+- [x] `ssr`: MAE `19.298`, RMSE `20.991`, corr `0.165`, failure `0.717`
 
 ## Current Figure Artifacts
 
@@ -128,6 +128,55 @@ Status: `[x]`
   - `outputs/data/aggregate/ubfc_full_active_methods_bpmrow_multi.csv`
   - `outputs/data/aggregate/ubfc_full_active_methods_bpmrow_multi_method_means.csv`
   - `outputs/data/aggregate/ubfc_full_active_methods_bpmrow_multi_runs.csv`
+
+## Quality Gating / Hold Pass
+
+Status: `[x]`
+
+- [x] Added stricter, configurable quality gates (skin/saturation/motion/min-pixels) in `scripts/offline_evaluate.py`
+- [x] Added bounded quality-hold policy with decay (skip/update-hold behavior) in `scripts/offline_evaluate.py`
+- [x] Added quality/hold CLI propagation through:
+  - `scripts/run_manifest_batch.py`
+  - `Makefile`
+- [x] Full UBFC manifest rerun completed with `bpm_row + multi_snr + qg4` (`42/42` successful):
+  - `outputs/data/aggregate/ubfc_full_active_methods_bpmrow_multi_qg4.csv`
+  - `outputs/data/aggregate/ubfc_full_active_methods_bpmrow_multi_qg4_method_means.csv`
+  - `outputs/data/aggregate/ubfc_full_active_methods_bpmrow_multi_qg4_runs.csv`
+
+## Nested Retuning Pass
+
+Status: `[x]`
+
+- [x] Added constrained nested tuning workflow script:
+  - `scripts/nested_tune_methods.py`
+- [x] Produced nested inner/outer artifacts:
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/nested_inner_results.csv`
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/nested_outer_results.csv`
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/nested_outer_summary_method_means.csv`
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/nested_best_params.json`
+- [x] Applied nested-selected per-method params on full UBFC:
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/full_apply_method_means.csv`
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/full_apply_method_means.tex`
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/full_apply_method_means.pdf`
+  - `outputs/data/aggregate/nested_tuning_qg4_fast/full_apply_method_means.png`
+- [x] Outcome summary (vs qg4 baseline):
+  - CHROM improved on MAE/RMSE/failure, POS improved on RMSE/correlation, SSR slight mixed gains, GREEN degraded noticeably.
+  - Canonical paper table remains the qg4 baseline for balanced overall performance.
+
+## SSR Redesign Pass
+
+Status: `[x]`
+
+- [x] Redesigned SSR implementation in `rppg_methods/ssr.py` with subspace-continuity alignment and stabilized rotation extraction.
+- [x] Full UBFC SSR benchmark completed (`42/42` successful):
+  - `outputs/data/aggregate/ubfc_ssr_redesign_qg4.csv`
+  - `outputs/data/aggregate/ubfc_ssr_redesign_qg4_method_means.csv`
+  - `outputs/data/aggregate/ubfc_ssr_redesign_qg4_runs.csv`
+- [x] Promoted redesigned SSR into canonical paper table (other methods from qg4 baseline):
+  - `outputs/data/aggregate/ubfc_full_active_methods_bpmrow_multi_qg4_ssr6_method_means.csv`
+  - `outputs/data/aggregate/ubfc_full_active_method_means.tex`
+  - `outputs/data/aggregate/ubfc_full_active_method_means.pdf`
+  - `outputs/data/aggregate/ubfc_full_active_method_means.png`
 
 ## Scope Alignment
 

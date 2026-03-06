@@ -15,7 +15,7 @@ from .base import RPPGMethod
 
 
 class SSRMethod(RPPGMethod):
-    """Frame-wise 2D skin-color subspace rotation pulse extraction."""
+    """Windowed SSR/2SR-style extraction with temporal stabilization."""
 
     def __init__(
         self,
@@ -49,6 +49,8 @@ class SSRMethod(RPPGMethod):
         if self._prev_basis is None:
             self._prev_basis = basis
             return
+
+        basis = self._align_basis_with_previous(basis, self._prev_basis)
 
         # Signed in-plane rotation proxy between consecutive 2D subspaces.
         a11 = float(np.dot(self._prev_basis[:, 0], basis[:, 0]))
@@ -106,3 +108,19 @@ class SSRMethod(RPPGMethod):
             if basis[dominant, j] < 0:
                 basis[:, j] *= -1.0
         return basis
+
+    @staticmethod
+    def _align_basis_with_previous(current: np.ndarray, previous: np.ndarray) -> np.ndarray:
+        # Resolve 2D basis permutation ambiguity by maximal overlap.
+        d00 = abs(float(np.dot(previous[:, 0], current[:, 0])))
+        d11 = abs(float(np.dot(previous[:, 1], current[:, 1])))
+        d01 = abs(float(np.dot(previous[:, 0], current[:, 1])))
+        d10 = abs(float(np.dot(previous[:, 1], current[:, 0])))
+        aligned = current.copy()
+        if (d01 + d10) > (d00 + d11):
+            aligned = aligned[:, [1, 0]]
+        # Resolve sign ambiguity with respect to previous basis.
+        for j in range(2):
+            if float(np.dot(previous[:, j], aligned[:, j])) < 0.0:
+                aligned[:, j] *= -1.0
+        return aligned

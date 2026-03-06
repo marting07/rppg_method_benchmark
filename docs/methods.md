@@ -74,6 +74,7 @@ Interpretation:
 
 - The pulse is encoded as temporal rotation of the skin-color subspace.
 - Signed rotation between consecutive 2D subspaces yields a 1D pulsatile stream.
+- The implementation applies deterministic basis-continuity alignment across frames (column permutation and sign consistency) to reduce subspace-switch jitter.
 
 Primary reference:
 
