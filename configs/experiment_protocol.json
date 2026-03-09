@@ -31,6 +31,6 @@
     }
   ],
   "metrics": ["mae", "rmse", "pearson_correlation"],
-  "methods": ["green", "chrom", "pos", "ssr"],
+  "methods": ["green", "chrom", "pos", "ssr", "ica", "pbv", "lgi"],
   "notes": "Manual implementations only: Green, CHROM, POS, and SSR/2SR-style."
 }

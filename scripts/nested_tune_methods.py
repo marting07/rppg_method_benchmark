@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 
-METHODS = ("green", "chrom", "pos", "ssr")
+METHODS = ("green", "chrom", "pos", "ssr", "ica", "pbv", "lgi")
 
 
 def parse_float_list(text: str) -> list[float]:

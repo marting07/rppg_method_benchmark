@@ -16,7 +16,7 @@ QUALITY_MIN_ROI_PIXELS ?= 260
 HOLD_MAX_SECONDS ?= 1.0
 HOLD_DECAY_PER_SECOND ?= 1.0
 
-.PHONY: venv install run freeze clean-venv test evaluate plots diagnostics sweep corpus-manifest corpus-batch corpus-download corpus-latex corpus-render paper-figures
+.PHONY: venv install run freeze clean-venv test evaluate plots diagnostics sweep corpus-manifest corpus-batch corpus-download corpus-latex corpus-render paper-figures dual-track-synthesis
 
 venv:
 	$(PYTHON) -m venv $(VENV_DIR)
@@ -60,6 +60,9 @@ corpus-render:
 
 paper-figures:
 	$(VENV_PY) scripts/create_paper_illustrations.py --run-id "$(RUN_ID)" --video "$(VIDEO)" $(if $(PAPER_FIG_OUT),--output-dir "$(PAPER_FIG_OUT)",)
+
+dual-track-synthesis:
+	$(VENV_PY) scripts/build_dual_track_summary.py $(if $(TRACK_A),--track-a-method-means "$(TRACK_A)",) $(if $(TRACK_B),--track-b-liveness-metrics "$(TRACK_B)",) $(if $(SYNTHESIS_OUT),--out "$(SYNTHESIS_OUT)",)
 
 freeze:
 	$(VENV_PIP) freeze > requirements.txt

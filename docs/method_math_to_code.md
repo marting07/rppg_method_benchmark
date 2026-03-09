@@ -74,3 +74,48 @@ Code mapping:
 - `SSRMethod.update`
 - `SSRMethod._compute_skin_subspace_basis`
 - File: `rppg_methods/ssr.py`
+
+## ICA Method
+
+Equations:
+
+- `X_n = X / mean(X) - 1`
+- `X_w = X_n W_white`
+- `w* = argmax E[log(cosh(w^T X_w))]`
+- `s_t = (X_w w*)_t`
+
+Code mapping:
+
+- `ICAMethod.update`
+- Shared implementation: `../rppg_core/methods/ica.py`
+- Compatibility wrapper: `rppg_methods/ica.py`
+
+## PBV Method
+
+Equations:
+
+- `X_n = X / mean(X) - 1`
+- `Sigma = cov(X_n)`
+- `w = Sigma^-1 p / (p^T Sigma^-1 p)`
+- `s_t = (X_n w)_t`
+
+Code mapping:
+
+- `PBVMethod.update`
+- Shared implementation: `../rppg_core/methods/pbv.py`
+- Compatibility wrapper: `rppg_methods/pbv.py`
+
+## LGI Method
+
+Equations:
+
+- `u1 = principal_singular_direction(X_n)`
+- `P = I - u1 u1^T`
+- `Y = X_n P`
+- `s_t = (Y v)_t`, `v = principal_eigenvector(cov(Y))`
+
+Code mapping:
+
+- `LGIMethod.update`
+- Shared implementation: `../rppg_core/methods/lgi.py`
+- Compatibility wrapper: `rppg_methods/lgi.py`

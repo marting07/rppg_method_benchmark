@@ -1,6 +1,6 @@
-# Experimental Protocol
+# Experimental Protocol (Track A)
 
-This protocol defines the comparison setup for Green, CHROM, POS, and SSR implementations.
+This protocol defines the offline comparison setup for Green, CHROM, POS, SSR, ICA, PBV, and LGI implementations.
 
 ## Goals
 

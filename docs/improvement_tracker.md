@@ -49,22 +49,22 @@ Status: `[x]`
   - `docs/method_math_to_code.md`
   - `docs/method_pseudocode.md`
   - `docs/experimental_protocol.md`
-- [x] Paper draft updated to active method set (`paper/paper_content_draft.tex`)
-- [x] Bibliography aligned to active method citations (`paper/references.bib`)
+- [x] Paper draft updated to active method set (`../rppg_modular_live_proof_paper/paper_content_draft.tex`)
+- [x] Bibliography aligned to active method citations (`../rppg_modular_live_proof_paper/references.bib`)
 - [x] Paper asset bundle created for direct template integration:
-  - `paper/assets/method_equations.tex`
-  - `paper/assets/method_pseudocode.tex`
-  - `paper/assets/method_math_to_code_table.tex`
-  - `paper/assets/figure_assets_index.md`
+  - `../rppg_modular_live_proof_paper/assets/method_equations.tex`
+  - `../rppg_modular_live_proof_paper/assets/method_pseudocode.tex`
+  - `../rppg_modular_live_proof_paper/assets/method_math_to_code_table.tex`
+  - `../rppg_modular_live_proof_paper/assets/figure_assets_index.md`
 - [x] Paper base scaffold created:
-  - `paper/paper_base.tex`
-  - `paper/ieee_submission.tex`
-  - `paper/README.md`
+  - `../rppg_modular_live_proof_paper/paper_base.tex`
+  - `../rppg_modular_live_proof_paper/ieee_submission.tex`
+  - `../rppg_modular_live_proof_paper/README.md`
 - [x] Draft appendices now input local paper assets instead of external docs.
 - [x] Paper draft split into modular sections:
-  - `paper/sections/01_title_abstract.tex` ... `paper/sections/12_references.tex`
-  - assembled content entrypoint: `paper/paper_content_structured.tex`
-  - `paper/paper_base.tex` updated to consume split sections.
+  - `../rppg_modular_live_proof_paper/sections/01_title_abstract.tex` ... `../rppg_modular_live_proof_paper/sections/12_references.tex`
+  - assembled content entrypoint: `../rppg_modular_live_proof_paper/paper_content_structured.tex`
+  - `../rppg_modular_live_proof_paper/paper_base.tex` updated to consume split sections.
 
 ## Current Table Artifacts
 

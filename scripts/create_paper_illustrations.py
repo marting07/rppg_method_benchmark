@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-DEFAULT_METHODS = ("green", "chrom", "pos", "ssr")
+DEFAULT_METHODS = ("green", "chrom", "pos", "ssr", "ica", "pbv", "lgi")
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,7 +22,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-root", default=Path("outputs/data"), type=Path)
     parser.add_argument("--output-dir", default=Path("outputs/paper/figures"), type=Path)
     parser.add_argument("--samples", type=int, default=5, help="Number of time sample frames.")
-    parser.add_argument("--methods", default="green,chrom,pos,ssr", help="Comma-separated method names.")
+    parser.add_argument("--methods", default="green,chrom,pos,ssr,ica,pbv,lgi", help="Comma-separated method names.")
     return parser.parse_args()
 
 
@@ -112,7 +112,15 @@ def create_method_figure(
     gt = mask_gt_to_estimate_support(est, data["ground_truth_bpm"])
     ax_sig.plot(t, est, label=f"{method.upper()} BPM", linewidth=1.0, color="#1f77b4")
     if np.any(np.isfinite(gt)):
-        ax_sig.plot(t, gt, label="Ground truth BPM", linewidth=0.9, color="#d62728", alpha=0.85)
+        ax_sig.plot(
+            t,
+            gt,
+            label="Ground truth BPM",
+            linewidth=1.1,
+            linestyle="--",
+            color="#111111",
+            alpha=0.95,
+        )
     for ts in sample_times:
         ax_sig.axvline(ts, color="#777777", linestyle="--", linewidth=0.8, alpha=0.7)
     ax_sig.set_xlabel("Time (s)")
@@ -147,6 +155,9 @@ def create_comparison_figure(
         "chrom": "#ff7f0e",
         "pos": "#1f77b4",
         "ssr": "#8c564b",
+        "ica": "#9467bd",
+        "pbv": "#17becf",
+        "lgi": "#d62728",
     }
     gt_plotted = False
     for method in methods:
@@ -155,7 +166,15 @@ def create_comparison_figure(
         ax_sig.plot(d["time_s"], d["estimated_bpm"], label=f"{method.upper()} BPM", linewidth=1.0, color=color)
         gt = mask_gt_to_estimate_support(d["estimated_bpm"], d["ground_truth_bpm"])
         if (not gt_plotted) and np.any(np.isfinite(gt)):
-            ax_sig.plot(d["time_s"], gt, label="Ground truth BPM", linewidth=1.0, color="#d62728", alpha=0.85)
+            ax_sig.plot(
+                d["time_s"],
+                gt,
+                label="Ground truth BPM",
+                linewidth=1.2,
+                linestyle="--",
+                color="#111111",
+                alpha=0.95,
+            )
             gt_plotted = True
     for ts in sample_times:
         ax_sig.axvline(ts, color="#777777", linestyle="--", linewidth=0.8, alpha=0.7)

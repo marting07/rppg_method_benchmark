@@ -61,10 +61,14 @@ def main() -> int:
                     "mae": to_float(row.get("mean_mae", "")),
                     "rmse": to_float(row.get("mean_rmse", "")),
                     "corr": to_float(row.get("mean_pearson_correlation", "")),
+                    "snr": to_float(row.get("mean_snr_db", "")),
+                    "proc_ms": to_float(row.get("mean_avg_processing_time_ms_per_window", "")),
                     "fail": to_float(row.get("mean_failure_rate_gt_10bpm", "")),
                     "mae_best": False,
                     "rmse_best": False,
                     "corr_best": False,
+                    "snr_best": False,
+                    "proc_ms_best": False,
                     "fail_best": False,
                 }
             )
@@ -75,6 +79,8 @@ def main() -> int:
     highlight_best(rows, "mae", lower_is_better=True)
     highlight_best(rows, "rmse", lower_is_better=True)
     highlight_best(rows, "corr", lower_is_better=False)
+    highlight_best(rows, "snr", lower_is_better=False)
+    highlight_best(rows, "proc_ms", lower_is_better=True)
     highlight_best(rows, "fail", lower_is_better=True)
 
     def cell(row: dict, key: str) -> str:
@@ -82,22 +88,24 @@ def main() -> int:
         return f"\\textbf{{{value}}}" if row.get(f"{key}_best", False) else value
 
     lines: list[str] = []
-    lines.append("\\begin{table}[t]")
+    lines.append("\\begin{table*}[t]")
     lines.append("\\centering")
-    lines.append("\\small")
-    lines.append("\\begin{tabular}{lccccc}")
+    lines.append("\\footnotesize")
+    lines.append("\\begin{tabular}{lccccccc}")
     lines.append("\\hline")
-    lines.append("Method & Subjects & MAE $\\downarrow$ & RMSE $\\downarrow$ & Corr $\\uparrow$ & FailRate $\\downarrow$\\\\")
+    lines.append(
+        "Method & Subjects & MAE $\\downarrow$ & RMSE $\\downarrow$ & Pearson $r$ $\\uparrow$ & SNR(dB) $\\uparrow$ & Proc(ms) $\\downarrow$ & FailRate $\\downarrow$\\\\"
+    )
     lines.append("\\hline")
     for row in rows:
         lines.append(
-            f"{row['method']} & {row['subjects']} & {cell(row, 'mae')} & {cell(row, 'rmse')} & {cell(row, 'corr')} & {cell(row, 'fail')}\\\\"
+            f"{row['method']} & {row['subjects']} & {cell(row, 'mae')} & {cell(row, 'rmse')} & {cell(row, 'corr')} & {cell(row, 'snr')} & {cell(row, 'proc_ms')} & {cell(row, 'fail')}\\\\"
         )
     lines.append("\\hline")
     lines.append("\\end{tabular}")
     lines.append(f"\\caption{{{args.caption}}}")
     lines.append(f"\\label{{{args.label}}}")
-    lines.append("\\end{table}")
+    lines.append("\\end{table*}")
     lines.append("")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

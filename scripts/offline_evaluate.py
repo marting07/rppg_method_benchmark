@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,7 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from rppg_methods import ChromMethod, GreenMethod, POSMethod, SSRMethod
+from rppg_methods import ChromMethod, GreenMethod, ICAMethod, LGIMethod, PBVMethod, POSMethod, SSRMethod
 from rppg_methods.base import RPPGMethod
 from utils.roi import FaceDetector, extract_named_face_rois
 
@@ -30,6 +31,9 @@ METHOD_FACTORY: dict[str, Callable[[float, int], RPPGMethod]] = {
     "chrom": lambda fs, buf: ChromMethod(fs=fs, buffer_size=buf),
     "pos": lambda fs, buf: POSMethod(fs=fs, buffer_size=buf),
     "ssr": lambda fs, buf: SSRMethod(fs=fs, buffer_size=buf),
+    "ica": lambda fs, buf: ICAMethod(fs=fs, buffer_size=buf),
+    "pbv": lambda fs, buf: PBVMethod(fs=fs, buffer_size=buf),
+    "lgi": lambda fs, buf: LGIMethod(fs=fs, buffer_size=buf),
 }
 
 
@@ -409,6 +413,8 @@ def main() -> int:
     gt = select_ground_truth_mode(gt_loaded, mode=args.ground_truth_mode)
 
     records: dict[str, list[dict[str, str]]] = {name: [] for name in requested_methods}
+    method_processing_ms_sum: dict[str, float] = {name: 0.0 for name in requested_methods}
+    method_processing_windows: dict[str, int] = {name: 0 for name in requested_methods}
     frame_idx = 0
     detected_face_count = 0
     roi_quality_pass_count = 0
@@ -457,6 +463,7 @@ def main() -> int:
         motion_score = float(np.mean(frame_motion_scores)) if frame_motion_scores else np.nan
 
         for method_name, method_rois in methods.items():
+            method_t0 = time.perf_counter()
             region_candidates: list[tuple[str, float, float, float | None, float | None, float | None]] = []
             latency_ref: RPPGMethod | None = None
             for roi_name in roi_names:
@@ -543,6 +550,8 @@ def main() -> int:
                     "error_bpm": "" if error is None else f"{error:.6f}",
                 }
             )
+            method_processing_ms_sum[method_name] += (time.perf_counter() - method_t0) * 1000.0
+            method_processing_windows[method_name] += 1
         frame_idx += 1
 
     cap.release()
@@ -580,6 +589,17 @@ def main() -> int:
         est = np.array([float(r["estimated_bpm"]) for r in rows if r["error_bpm"]], dtype=np.float64)
         gt_arr = np.array([float(r["ground_truth_bpm"]) for r in rows if r["error_bpm"]], dtype=np.float64)
         metrics = compute_metrics(errors, est, gt_arr)
+        conf_values = np.array(
+            [
+                float(r["selection_confidence"])
+                for r in rows
+                if r["selection_confidence"] and float(r["selection_confidence"]) > 0.0
+            ],
+            dtype=np.float64,
+        )
+        mean_snr_db = None if conf_values.size == 0 else float(np.mean(10.0 * np.log10(conf_values)))
+        proc_windows = max(method_processing_windows.get(method_name, 0), 1)
+        avg_proc_ms = float(method_processing_ms_sum.get(method_name, 0.0)) / float(proc_windows)
 
         summary_rows.append(
             {
@@ -591,6 +611,8 @@ def main() -> int:
                 "mae": "" if metrics["mae"] is None else f"{metrics['mae']:.6f}",
                 "rmse": "" if metrics["rmse"] is None else f"{metrics['rmse']:.6f}",
                 "pearson_correlation": "" if metrics["pearson_correlation"] is None else f"{metrics['pearson_correlation']:.6f}",
+                "mean_snr_db": "" if mean_snr_db is None else f"{mean_snr_db:.6f}",
+                "avg_processing_time_ms_per_window": f"{avg_proc_ms:.6f}",
                 "failure_rate_gt_10bpm": "" if metrics["failure_rate_gt_10bpm"] is None else f"{metrics['failure_rate_gt_10bpm']:.6f}",
                 "optimized_lag_seconds": f"{lag_s:.6f}",
             }
@@ -609,6 +631,8 @@ def main() -> int:
                 "mae",
                 "rmse",
                 "pearson_correlation",
+                "mean_snr_db",
+                "avg_processing_time_ms_per_window",
                 "failure_rate_gt_10bpm",
                 "optimized_lag_seconds",
             ],

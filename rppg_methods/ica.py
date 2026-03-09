@@ -1,4 +1,4 @@
-"""Compatibility wrapper for robust color extraction from ``rppg_core``."""
+"""Compatibility wrapper for ICA method from ``rppg_core``."""
 
 from __future__ import annotations
 
@@ -9,6 +9,6 @@ PAPERS_ROOT = Path(__file__).resolve().parents[2]
 if str(PAPERS_ROOT) not in sys.path:
     sys.path.insert(0, str(PAPERS_ROOT))
 
-from rppg_core.utils.color_signal import robust_mean_bgr
+from rppg_core.methods.ica import ICAMethod
 
-__all__ = ["robust_mean_bgr"]
+__all__ = ["ICAMethod"]

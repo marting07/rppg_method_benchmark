@@ -173,6 +173,8 @@ def main() -> int:
                     "mae": method_row.get("mae", ""),
                     "rmse": method_row.get("rmse", ""),
                     "pearson_correlation": method_row.get("pearson_correlation", ""),
+                    "mean_snr_db": method_row.get("mean_snr_db", ""),
+                    "avg_processing_time_ms_per_window": method_row.get("avg_processing_time_ms_per_window", ""),
                     "failure_rate_gt_10bpm": method_row.get("failure_rate_gt_10bpm", ""),
                 }
             )
@@ -193,6 +195,8 @@ def main() -> int:
                 "mae",
                 "rmse",
                 "pearson_correlation",
+                "mean_snr_db",
+                "avg_processing_time_ms_per_window",
                 "failure_rate_gt_10bpm",
             ],
         )
@@ -221,6 +225,8 @@ def main() -> int:
                 "mean_mae",
                 "mean_rmse",
                 "mean_pearson_correlation",
+                "mean_snr_db",
+                "mean_avg_processing_time_ms_per_window",
                 "mean_failure_rate_gt_10bpm",
             ],
         )
@@ -233,6 +239,8 @@ def main() -> int:
                     "mean_mae": aggregate_metrics(rows, "mae"),
                     "mean_rmse": aggregate_metrics(rows, "rmse"),
                     "mean_pearson_correlation": aggregate_metrics(rows, "pearson_correlation"),
+                    "mean_snr_db": aggregate_metrics(rows, "mean_snr_db"),
+                    "mean_avg_processing_time_ms_per_window": aggregate_metrics(rows, "avg_processing_time_ms_per_window"),
                     "mean_failure_rate_gt_10bpm": aggregate_metrics(rows, "failure_rate_gt_10bpm"),
                 }
             )

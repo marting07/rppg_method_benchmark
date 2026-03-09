@@ -18,7 +18,7 @@ def parse_floats(text: str) -> list[float]:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--manifest", required=True, type=Path)
-    p.add_argument("--method", required=True, choices=["green", "chrom", "pos", "ssr"])
+    p.add_argument("--method", required=True, choices=["green", "chrom", "pos", "ssr", "ica", "pbv", "lgi"])
     p.add_argument("--scenario", default="still")
     p.add_argument("--output-dir", default=Path("outputs/data"), type=Path)
     p.add_argument("--aggregate-root", default=Path("outputs/data/aggregate/sweeps"), type=Path)

@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from rppg_methods import ChromMethod, GreenMethod, POSMethod, SSRMethod
+from rppg_methods import ChromMethod, GreenMethod, ICAMethod, LGIMethod, PBVMethod, POSMethod, SSRMethod
 
 
 def roi_from_bgr(b: float, g: float, r: float, size: int = 12) -> np.ndarray:
@@ -32,7 +32,7 @@ def textured_roi_from_bgr(
 
 class MethodBehaviorTests(unittest.TestCase):
     def test_empty_roi_is_ignored(self) -> None:
-        methods = [GreenMethod(), ChromMethod(), POSMethod(), SSRMethod()]
+        methods = [GreenMethod(), ChromMethod(), POSMethod(), SSRMethod(), ICAMethod(), PBVMethod(), LGIMethod()]
         empty = np.zeros((0, 0, 3), dtype=np.uint8)
         for method in methods:
             method.update(empty)
@@ -126,6 +126,27 @@ class MethodBehaviorTests(unittest.TestCase):
             method.update(roi_from_bgr(90.0, 120.0, 100.0))
         signal = method.get_ppg_signal()
         self.assertEqual(signal.size, 5)
+
+    def test_optional_methods_emit_hr_on_synthetic_input(self) -> None:
+        fs = 30.0
+        bpm_target = 75.0
+        freq = bpm_target / 60.0
+        methods = [ICAMethod(fs=fs, buffer_size=600), PBVMethod(fs=fs, buffer_size=600), LGIMethod(fs=fs, buffer_size=600)]
+        n = int(14.0 * fs)
+        for idx in range(n):
+            t = idx / fs
+            pulse = np.sin(2.0 * np.pi * freq * t)
+            r = 125.0 + 10.0 * pulse
+            g = 110.0 + 9.0 * np.sin(2.0 * np.pi * freq * t + 0.25)
+            b = 95.0 + 6.0 * np.sin(2.0 * np.pi * freq * t - 0.15)
+            roi = textured_roi_from_bgr(b=b, g=g, r=r)
+            for method in methods:
+                method.update(roi)
+        for method in methods:
+            hr = method.get_hr()
+            self.assertIsNotNone(hr)
+            assert hr is not None
+            self.assertTrue(45.0 <= hr <= 180.0)
 
 
 if __name__ == "__main__":

@@ -79,3 +79,53 @@ Interpretation:
 Primary reference:
 
 - Wang, W., Stuijk, S., & de Haan, G. (2015). *A Novel Algorithm for Remote Photoplethysmography: Spatial Subspace Rotation*. IEEE Transactions on Biomedical Engineering, 63(9), 1974-1984.
+
+## 5) ICA (Blind Source Separation Inspired)
+
+Extraction procedure (windowed RGB traces):
+
+- build normalized RGB matrix `X`
+- whiten `X` from covariance eigendecomposition
+- run one-component FastICA fixed-point iteration
+- use latest independent-component value as `s_t`
+
+Interpretation:
+
+- ICA seeks a latent pulsatile component less mixed with illumination/motion sources.
+
+Primary reference:
+
+- Poh, M.-Z., McDuff, D. J., & Picard, R. W. (2010). *Non-contact, automated cardiac pulse measurements using video imaging and blind source separation*. Optics Express, 18(10), 10762-10774.
+
+## 6) PBV (Blood Volume Pulse Signature)
+
+Extraction procedure (windowed normalized RGB):
+
+- compute RGB covariance `Sigma`
+- use canonical PBV signature vector `p`
+- compute projection weights `w = Sigma^{-1} p / (p^T Sigma^{-1} p)`
+- derive scalar `s_t` from projected temporal trace
+
+Interpretation:
+
+- PBV constrains projection toward a physiologically motivated blood-volume direction to improve robustness.
+
+Primary reference:
+
+- de Haan, G., & van Leest, A. (2014). *Improved motion robustness of remote-PPG by using the blood volume pulse signature*. Physiological Measurement, 35(9), 1913-1926.
+
+## 7) LGI (Local Group Invariance Inspired)
+
+Extraction procedure (windowed normalized RGB):
+
+- estimate dominant RGB subspace direction via SVD
+- project RGB traces onto orthogonal complement of dominant direction
+- select dominant residual axis as pulse proxy and derive `s_t`
+
+Interpretation:
+
+- LGI-style projection aims to retain pulse-relevant color dynamics while suppressing common nuisance variation.
+
+Primary reference:
+
+- Pilz, C. S., Zaunseder, S., Krajewski, J., & Blazek, V. (2018). *Local Group Invariance for Heart Rate Estimation From Face Videos in the Wild*. CVPR Workshops, 1254-1262.

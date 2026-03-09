@@ -75,3 +75,66 @@ For each frame:
   if signal_buffer has enough samples:
     estimate bpm using shared FFT pipeline
 ```
+
+## ICA Method
+
+```text
+Initialize ICAMethod(fs, buffer_size, window_size)
+Maintain rolling R, G, B buffers
+For each frame:
+  roi <- forehead_region(frame)
+  if roi is empty: continue
+  r, g, b <- robust mean RGB from roi
+  append r, g, b to rolling buffers
+  if window is not full: continue
+  X <- normalized RGB window
+  Xw <- whiten(X)
+  c <- one-component FastICA(Xw)
+  s <- normalize(c)
+  append s[-1] to signal_buffer
+  if signal_buffer has enough samples:
+    estimate bpm using shared FFT pipeline
+```
+
+## PBV Method
+
+```text
+Initialize PBVMethod(fs, buffer_size, window_size)
+Set blood-volume signature p = [0.77, 0.51, 0.38]
+Maintain rolling R, G, B buffers
+For each frame:
+  roi <- forehead_region(frame)
+  if roi is empty: continue
+  r, g, b <- robust mean RGB from roi
+  append r, g, b to rolling buffers
+  if window is not full: continue
+  X <- normalized RGB window
+  Sigma <- covariance(X)
+  w <- inv(Sigma) * p / (transpose(p) * inv(Sigma) * p)
+  s <- normalize(X * w)
+  append s[-1] to signal_buffer
+  if signal_buffer has enough samples:
+    estimate bpm using shared FFT pipeline
+```
+
+## LGI Method
+
+```text
+Initialize LGIMethod(fs, buffer_size, window_size)
+Maintain rolling R, G, B buffers
+For each frame:
+  roi <- forehead_region(frame)
+  if roi is empty: continue
+  r, g, b <- robust mean RGB from roi
+  append r, g, b to rolling buffers
+  if window is not full: continue
+  X <- normalized RGB window
+  u1 <- dominant right-singular vector of X
+  P <- I - u1 * transpose(u1)
+  Y <- X * P
+  v <- dominant residual eigenvector from cov(Y)
+  s <- normalize(Y * v)
+  append s[-1] to signal_buffer
+  if signal_buffer has enough samples:
+    estimate bpm using shared FFT pipeline
+```
