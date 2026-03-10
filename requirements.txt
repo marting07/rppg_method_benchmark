@@ -1,3 +1,4 @@
+-e ../rppg_core
 numpy==2.2.2
 scipy==1.15.1
 opencv-python==4.11.0.86
